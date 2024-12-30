@@ -8,7 +8,6 @@ from typing import (
     Callable,
     Literal,
     Mapping,
-    TypedDict,
     TypeVar,
     Union,
     get_args,
@@ -205,10 +204,10 @@ def gen_sql_stmt(*components: str) -> str:
         return buffer.getvalue().strip()
 
 
-ColsDefinition = Union[tuple[str, ...], Mapping[str, Any], TypedDict]
+ColsDefinition = Union[tuple[str, ...], Mapping[str, Any]]
 """Define how we can provide cols."""
 
-ColsValuesDict = Union[Mapping[str, Any], TypedDict]
+ColsValuesDict = Mapping[str, Any]
 """Define how we can provide col,value pairs."""
 
 OrderByCols = Union[Mapping[str, ORDER_DIRECTION], tuple[tuple[str, ORDER_DIRECTION]]]
