@@ -18,6 +18,7 @@ from typing import (
 from typing_extensions import ParamSpec
 
 from simple_sqlite3_orm._sqlite_spec import (
+    ORDER_DIRECTION,
     ConstrainLiteral,
     SQLiteTypeAffinity,
     SQLiteTypeAffinityLiteral,
@@ -209,3 +210,6 @@ ColsDefinition = Union[tuple[str, ...], Mapping[str, Any], TypedDict]
 
 ColsValuesDict = Union[Mapping[str, Any], TypedDict]
 """Define how we can provide col,value pairs."""
+
+OrderByCols = Union[Mapping[str, ORDER_DIRECTION], tuple[tuple[str, ORDER_DIRECTION]]]
+"""Define how we can provide order_by information."""
