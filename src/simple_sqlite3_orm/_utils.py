@@ -214,7 +214,7 @@ def gen_sql_stmt(*components: str) -> str:
         return buffer.getvalue().strip()
 
 
-ColsDefinition: TypeAlias = "tuple[str, ...] | Mapping[str, Any]"
+ColsDefinition: TypeAlias = "tuple[str, ...] | Mapping[str, EllipsisType]"
 """Define how we can provide cols."""
 
 ColsValuesDict = Mapping[str, Any]
