@@ -14,7 +14,7 @@ from typing import (
     get_origin,
 )
 
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, TypeAlias
 
 from simple_sqlite3_orm._sqlite_spec import (
     ORDER_DIRECTION,
@@ -50,6 +50,16 @@ else:
                 cls, _type: type[Any], _params: type[Any] | tuple[type[Any], ...]
             ):
                 """For type check only, typing the _GenericAlias as GenericAlias."""
+
+
+if sys.version_info >= (3, 10):
+    from types import EllipsisType
+
+else:
+    if TYPE_CHECKING:
+        from builtins import ellipsis
+
+        EllipsisType: TypeAlias = "ellipsis"
 
 
 def map_type(
@@ -204,11 +214,33 @@ def gen_sql_stmt(*components: str) -> str:
         return buffer.getvalue().strip()
 
 
-ColsDefinition = Union[tuple[str, ...], Mapping[str, Any]]
+ColsDefinition: TypeAlias = "tuple[str, ...] | Mapping[str, Any]"
 """Define how we can provide cols."""
 
 ColsValuesDict = Mapping[str, Any]
 """Define how we can provide col,value pairs."""
 
-OrderByCols = Union[Mapping[str, ORDER_DIRECTION], tuple[tuple[str, ORDER_DIRECTION]]]
+ColsDefWithDirection: TypeAlias = "Mapping[str, ORDER_DIRECTION | EllipsisType] | tuple[tuple[str, ORDER_DIRECTION] | str, ...]"
 """Define how we can provide order_by information."""
+
+
+def gen_cols_stmt_with_direction(_in: ColsDefWithDirection) -> str:
+    """Generate stmt from ColsDefWithDirection.
+
+    Example:
+        for _in={"a_col": None, "b_col": "ASC"}, we get return as follow:
+            "a_col, b_col ASC"
+    """
+    _cols: list[str] = []
+    _src = _in.items() if isinstance(_in, Mapping) else _in
+
+    for _item in _src:
+        if isinstance(_item, tuple):
+            _col, _direction = _item
+            if isinstance(_direction, str) and _direction:
+                _cols.append(f"{_col} {_direction}")
+            else:
+                _cols.append(_col)
+        else:
+            _cols.append(_item)
+    return ",".join(_cols)
