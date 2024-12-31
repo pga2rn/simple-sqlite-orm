@@ -7,6 +7,7 @@ from simple_sqlite3_orm._orm import (
     ORMThreadPoolBase,
 )
 from simple_sqlite3_orm._sqlite_spec import (
+    ORDER_DIRECTION,
     SQLiteBuiltInFuncs,
     SQLiteStorageClass,
     SQLiteStorageClassLiteral,
@@ -53,4 +54,5 @@ __all__ = [
     "__version__",
     "__version_tuple__",
     "version",
+    "ORDER_DIRECTION",
 ]
