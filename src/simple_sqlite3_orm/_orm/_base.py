@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Mapping
 from functools import cached_property, partial
 from itertools import count
 from typing import (
@@ -16,7 +17,7 @@ from typing import (
 from typing_extensions import ParamSpec
 
 from simple_sqlite3_orm._orm._utils import parameterized_class_getitem
-from simple_sqlite3_orm._sqlite_spec import INSERT_OR
+from simple_sqlite3_orm._sqlite_spec import INSERT_OR, ORDER_DIRECTION
 from simple_sqlite3_orm._table_spec import TableSpec, TableSpecType
 from simple_sqlite3_orm._types import ConnectionFactoryType, RowFactoryType
 from simple_sqlite3_orm._utils import ColsDefinition, ColsDefWithDirection
@@ -60,6 +61,17 @@ def row_factory_setter(
     elif row_factory_specifier == "sqlite3_row_factory":
         con.row_factory = sqlite3.Row
     # do nothing means not changing connection scope row_factory
+
+
+def _convert_cols_with_direction_to_tuple(_in: Mapping[str, ORDER_DIRECTION | Any]):
+    """Convert cols info provided as Mapping into tuple."""
+    _index_cols = []
+    for k, v in _in.items():
+        if isinstance(v, str):
+            _index_cols.append((k, v))
+        else:
+            _index_cols.append(k)
+    return tuple(_index_cols)
 
 
 class ORMBase(Generic[TableSpecType]):
@@ -239,6 +251,9 @@ class ORMBase(Generic[TableSpecType]):
         Raises:
             sqlite3.DatabaseError on failed sql execution.
         """
+        if isinstance(index_keys, Mapping):
+            index_keys = _convert_cols_with_direction_to_tuple(index_keys)
+
         index_create_stmt = self.orm_table_spec.table_create_index_stmt(
             table_name=self.orm_table_name,
             index_name=index_name,
@@ -274,6 +289,9 @@ class ORMBase(Generic[TableSpecType]):
         Yields:
             Generator[TableSpecType, None, None]: A generator that can be used to yield entry from result.
         """
+        if isinstance(_order_by, Mapping):
+            _order_by = _convert_cols_with_direction_to_tuple(_order_by)
+
         table_select_stmt = self.orm_table_spec.table_select_stmt(
             select_from=self.orm_table_name,
             distinct=_distinct,
@@ -314,6 +332,9 @@ class ORMBase(Generic[TableSpecType]):
         Returns:
             Exactly one <TableSpecType> entry, or None if not hit.
         """
+        if isinstance(_order_by, Mapping):
+            _order_by = _convert_cols_with_direction_to_tuple(_order_by)
+
         table_select_stmt = self.orm_table_spec.table_select_stmt(
             select_from=self.orm_table_name,
             distinct=_distinct,
@@ -396,6 +417,9 @@ class ORMBase(Generic[TableSpecType]):
         Returns:
             int: The num of entries deleted.
         """
+        if isinstance(_order_by, Mapping):
+            _order_by = _convert_cols_with_direction_to_tuple(_order_by)
+
         delete_stmt = self.orm_table_spec.table_delete_stmt(
             delete_from=self.orm_table_name,
             limit=_limit,
@@ -435,6 +459,12 @@ class ORMBase(Generic[TableSpecType]):
             Generator[TableSpecType, None, None]: If <_returning_cols> is defined, returns a generator which can
                 be used to yield the deleted entries from.
         """
+        if isinstance(_order_by, Mapping):
+            _order_by = _convert_cols_with_direction_to_tuple(_order_by)
+
+        if isinstance(_returning_cols, Mapping):
+            _returning_cols = tuple(_returning_cols)
+
         delete_stmt = self.orm_table_spec.table_delete_stmt(
             delete_from=self.orm_table_name,
             limit=_limit,
