@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Mapping
 from typing import Any, Iterable, Literal, TypeVar
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from typing_extensions import Self
 
-from simple_sqlite3_orm._sqlite_spec import INSERT_OR, SQLiteBuiltInFuncs
+from simple_sqlite3_orm._sqlite_spec import (
+    INSERT_OR,
+    ORDER_DIRECTION,
+    SQLiteBuiltInFuncs,
+)
 from simple_sqlite3_orm._utils import (
-    ColsDefinition,
-    ColsDefWithDirection,
-    ColsValuesDict,
     ConstrainRepr,
     TypeAffinityRepr,
     gen_cols_stmt_with_direction,
@@ -26,7 +28,7 @@ class TableSpec(BaseModel):
     @classmethod
     def _generate_where_stmt(
         cls,
-        where_cols: ColsDefinition | None = None,
+        where_cols: tuple[str, ...] | None = None,
         where_stmt: str | None = None,
     ) -> str:
         if where_stmt:
@@ -42,7 +44,7 @@ class TableSpec(BaseModel):
     @classmethod
     def _generate_order_by_stmt(
         cls,
-        order_by: ColsDefWithDirection | None = None,
+        order_by: tuple[str | tuple[str, ORDER_DIRECTION], ...] | None = None,
         order_by_stmt: str | None = None,
     ) -> str:
         if order_by_stmt:
@@ -54,14 +56,14 @@ class TableSpec(BaseModel):
     @classmethod
     def _generate_returning_stmt(
         cls,
-        returning_cols: ColsDefinition | Literal["*"] | None = None,
+        returning_cols: tuple[str, ...] | Literal["*"] | None = None,
         returning_stmt: str | None = None,
     ) -> str:
         if returning_stmt:
             return returning_stmt
         if returning_cols == "*":
             return "RETURNING *"
-        if returning_cols:
+        if isinstance(returning_cols, tuple):
             cls.table_check_cols(returning_cols)
             return f"RETURNING {','.join(returning_cols)}"
         return ""
@@ -79,11 +81,8 @@ class TableSpec(BaseModel):
 
     @classmethod
     @lru_cache
-    def table_check_cols(cls, cols: ColsDefinition) -> None:
+    def table_check_cols(cls, cols: tuple[str, ...]) -> None:
         """Ensure all cols in <cols> existed in the table definition.
-
-        Args:
-            cols (ColsDefinition): check a list of cols specified by <cols>.
 
         Raises:
             ValueError if any of col doesn't exist in the table.
@@ -156,26 +155,16 @@ class TableSpec(BaseModel):
         *,
         table_name: str,
         index_name: str,
-        index_cols: ColsDefWithDirection,
+        index_cols: tuple[str | tuple[str, ORDER_DIRECTION], ...],
         if_not_exists: bool = False,
         unique: bool = False,
     ) -> str:
         """Get index create statement with this table spec class.
 
-        Check https://www.sqlite.org/lang_createindex.html for more details.
-
-        Args:
-            table_name (str): the target table of index to be created.
-            index_name (str): the name of index to be created.
-            index_cols (ColsDefWithDirection): cols to be indexed.
-            if_not_exists (bool, optional): only create index when not existed. Defaults to False.
-            unique (bool, optional): if True, no duplicated entries is allowed. Defaults to False.
-
         Raises:
             ValueError on <index_cols> not specified, or invalid <index_cols>.
 
-        Returns:
-            str: sqlite query to create index.
+        Check https://www.sqlite.org/lang_createindex.html for more details.
         """
         if not index_cols:
             raise ValueError("at least one col should be specified for an index")
@@ -238,12 +227,12 @@ class TableSpec(BaseModel):
 
     @classmethod
     def table_from_dict(
-        cls, _map: ColsValuesDict, *, with_validation: bool = True, **kwargs
+        cls, _map: Mapping[str, Any], *, with_validation: bool = True, **kwargs
     ) -> Self:
         """A raw row_factory that converts the input mapping to TableSpec instance.
 
         Args:
-            _map (ColsValuesDict): the raw table row as a dict.
+            _map (Mapping[str, Any]): the raw table row as a dict.
             with_validation (bool, optional): if set to False, will use pydantic model_construct to directly
                 construct instance without validation. Default to True.
             **kwargs: extra kwargs passed to pydantic model_validate API. Note that only when
@@ -262,10 +251,10 @@ class TableSpec(BaseModel):
         cls,
         *,
         insert_into: str,
-        insert_cols: ColsDefinition | None = None,
+        insert_cols: tuple[str, ...] | None = None,
         insert_default: bool = False,
         or_option: INSERT_OR | None = None,
-        returning_cols: ColsDefinition | Literal["*"] | None = None,
+        returning_cols: tuple[str, ...] | Literal["*"] | None = None,
         returning_stmt: str | None = None,
     ) -> str:
         """Get sql for inserting row(s) into <table_name>.
@@ -274,12 +263,12 @@ class TableSpec(BaseModel):
 
         Args:
             insert_into (str): The name of table insert into.
-            insert_cols (ColsDefinition | None, optional): The cols to be assigned for entry to be inserted.
+            insert_cols (tuple[str, ...] | None, optional): The cols to be assigned for entry to be inserted.
                 Defaults to None, means we will assign all cols of the row.
             insert_default (bool, optional): No values will be assigned, all cols will be assigned with
                 default value, this precedes the <insert_cols> param. Defaults to False.
             or_option (INSERT_OR | None, optional): The fallback operation if insert failed. Defaults to None.
-            returning_cols (ColsDefinition | Literal["*"] | None): Which cols are included in the returned entries.
+            returning_cols (tuple[str, ...] | Literal["*"] | None): Which cols are included in the returned entries.
                 Defaults to None.
             returning_stmt (str | None, optional): The full returning statement string, this
                 precedes the <returning_cols> param. Defaults to None.
@@ -324,7 +313,7 @@ class TableSpec(BaseModel):
         select_from: str,
         batch_idx: int | None = None,
         batch_size: int | None = None,
-        order_by: ColsDefWithDirection | None = None,
+        order_by: tuple[str | tuple[str, ORDER_DIRECTION], ...] | None = None,
         order_by_stmt: str | None = None,
         distinct: bool = False,
     ) -> str:
@@ -336,7 +325,7 @@ class TableSpec(BaseModel):
             select_from (str): The table name for the generated statement.
             batch_idx (int | None, optional): If specified, the batch index of current page. Defaults to None.
             batch_size (int | None, optional): If specified, the batch size of each page. Defaults to None.
-            order_by (OrderByCols | None, optional):
+            order_by (tuple[str | tuple[str, ORDER_DIRECTION], ...] | None, optional):
                 A list of cols for ordering result. Defaults to None.
             order_by_stmt (str | None, optional): The order_by statement string, this
                 precedes the <order_by> param if set. Defaults to None.
@@ -379,12 +368,12 @@ class TableSpec(BaseModel):
         cls,
         *,
         select_from: str,
-        select_cols: ColsDefinition | Literal["*"] | str = "*",
+        select_cols: tuple[str, ...] | Literal["*"] | str = "*",
         function: SQLiteBuiltInFuncs | None = None,
         where_stmt: str | None = None,
-        where_cols: ColsDefinition | None = None,
-        group_by: ColsDefinition | None = None,
-        order_by: ColsDefWithDirection | None = None,
+        where_cols: tuple[str, ...] | None = None,
+        group_by: tuple[str, ...] | None = None,
+        order_by: tuple[str | tuple[str, ORDER_DIRECTION], ...] | None = None,
         order_by_stmt: str | None = None,
         limit: int | None = None,
         distinct: bool = False,
@@ -396,14 +385,14 @@ class TableSpec(BaseModel):
 
         Args:
             select_from (str): The table name for the generated statement.
-            select_cols (ColsDefinition | Literal["*"] | str, optional): A list of cols included in the result row. Defaults to "*".
+            select_cols (tuple[str, ...] | Literal["*"] | str, optional): A list of cols included in the result row. Defaults to "*".
             function (SQLiteBuiltInFuncs | None, optional): The sqlite3 function used in the selection. Defaults to None.
-            where_cols (ColsDefinition | None, optional): A list of cols to be compared in where
+            where_cols (tuple[str, ...] | None, optional): A list of cols to be compared in where
                 statement. Defaults to None.
             where_stmt (str | None, optional): The full where statement string, this
                 precedes the <where_cols> param if set. Defaults to None.
-            group_by (ColsDefinition | None, optional): A list of cols for group_by statement. Defaults to None.
-            order_by (OrderByCols | None, optional):
+            group_by (tuple[str, ...] | None, optional): A list of cols for group_by statement. Defaults to None.
+            order_by (Iterable[str  |  tuple[str, ORDER_DIRECTION], ...] | None, optional):
                 A list of cols for ordering result. Defaults to None.
             order_by_stmt (str | None, optional): The order_by statement string, this
                 precedes the <order_by> param if set. Defaults to None.
@@ -445,12 +434,12 @@ class TableSpec(BaseModel):
         cls,
         *,
         delete_from: str,
-        where_cols: ColsDefinition | None = None,
+        where_cols: tuple[str, ...] | None = None,
         where_stmt: str | None = None,
-        order_by: ColsDefWithDirection | None = None,
+        order_by: tuple[str | tuple[str, ORDER_DIRECTION], ...] | None = None,
         order_by_stmt: str | None = None,
         limit: int | str | None = None,
-        returning_cols: ColsDefinition | Literal["*"] | None = None,
+        returning_cols: tuple[str, ...] | Literal["*"] | None = None,
         returning_stmt: str | None = None,
     ) -> str:
         """Get sql for deleting row(s) from <table_name> with specifying col value(s).
