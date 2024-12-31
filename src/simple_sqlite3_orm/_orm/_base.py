@@ -224,7 +224,7 @@ class ORMBase(Generic[TableSpecType]):
         self,
         *,
         index_name: str,
-        index_keys: ColsDefinition,
+        index_keys: ColsDefWithDirection,
         allow_existed: bool = False,
         unique: bool = False,
     ) -> None:
@@ -232,7 +232,7 @@ class ORMBase(Generic[TableSpecType]):
 
         Args:
             index_name (str): The name of the index.
-            index_keys (ColsDefinition): The columns for the index.
+            index_keys (ColsDefWithDirection): The columns for the index.
             allow_existed (bool, optional): Not abort on index already created. Defaults to False.
             unique (bool, optional): Not allow duplicated entries in the index. Defaults to False.
 

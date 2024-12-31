@@ -21,7 +21,7 @@ from simple_sqlite3_orm._types import (
     DatetimeUnixTimestampInt,
     RowFactoryType,
 )
-from simple_sqlite3_orm._utils import ConstrainRepr, TypeAffinityRepr
+from simple_sqlite3_orm._utils import ConstrainRepr, EllipsisType, TypeAffinityRepr
 
 try:
     from simple_sqlite3_orm._version import __version__, __version_tuple__, version
@@ -31,6 +31,7 @@ except ImportError:
 
 __all__ = [
     "ConstrainRepr",
+    "EllipsisType",
     "SQLiteBuiltInFuncs",
     "SQLiteStorageClass",
     "SQLiteStorageClassLiteral",
