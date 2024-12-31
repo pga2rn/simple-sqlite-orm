@@ -16,9 +16,10 @@ from typing import (
 from typing_extensions import ParamSpec
 
 from simple_sqlite3_orm._orm._utils import parameterized_class_getitem
-from simple_sqlite3_orm._sqlite_spec import INSERT_OR, ORDER_DIRECTION
+from simple_sqlite3_orm._sqlite_spec import INSERT_OR
 from simple_sqlite3_orm._table_spec import TableSpec, TableSpecType
 from simple_sqlite3_orm._types import ConnectionFactoryType, RowFactoryType
+from simple_sqlite3_orm._utils import ColsDefinition, ColsDefWithDirection
 
 P = ParamSpec("P")
 RT = TypeVar("RT")
@@ -223,7 +224,7 @@ class ORMBase(Generic[TableSpecType]):
         self,
         *,
         index_name: str,
-        index_keys: tuple[str, ...],
+        index_keys: ColsDefinition,
         allow_existed: bool = False,
         unique: bool = False,
     ) -> None:
@@ -231,7 +232,7 @@ class ORMBase(Generic[TableSpecType]):
 
         Args:
             index_name (str): The name of the index.
-            index_keys (tuple[str, ...]): The columns for the index.
+            index_keys (ColsDefinition): The columns for the index.
             allow_existed (bool, optional): Not abort on index already created. Defaults to False.
             unique (bool, optional): Not allow duplicated entries in the index. Defaults to False.
 
@@ -252,7 +253,7 @@ class ORMBase(Generic[TableSpecType]):
         self,
         *,
         _distinct: bool = False,
-        _order_by: tuple[str | tuple[str, ORDER_DIRECTION], ...] | None = None,
+        _order_by: ColsDefWithDirection | None = None,
         _limit: int | None = None,
         _row_factory: RowFactoryType | None = None,
         **col_values: Any,
@@ -261,7 +262,7 @@ class ORMBase(Generic[TableSpecType]):
 
         Args:
             _distinct (bool, optional): Deduplicate and only return unique entries. Defaults to False.
-            _order_by (tuple[str  |  tuple[str, ORDER_DIRECTION], ...] | None, optional):
+            _order_by (ColsDefWithDirection | None, optional):
                 Order the result accordingly. Defaults to None, not sorting the result.
             _limit (int | None, optional): Limit the number of result entries. Defaults to None.
             _row_factory (RowFactoryType | None, optional): By default ORMBase will use <table_spec>.table_row_factory
@@ -291,7 +292,7 @@ class ORMBase(Generic[TableSpecType]):
         self,
         *,
         _distinct: bool = False,
-        _order_by: tuple[str | tuple[str, ORDER_DIRECTION], ...] | None = None,
+        _order_by: ColsDefWithDirection | None = None,
         _row_factory: RowFactoryType | None = None,
         **col_values: Any,
     ) -> TableSpecType | Any | None:
@@ -302,7 +303,7 @@ class ORMBase(Generic[TableSpecType]):
 
         Args:
             _distinct (bool, optional): Deduplicate and only return unique entries. Defaults to False.
-            _order_by (tuple[str  |  tuple[str, ORDER_DIRECTION], ...] | None, optional):
+            _order_by (ColsDefWithDirection | None, optional):
                 Order the result accordingly. Defaults to None, not sorting the result.
             _row_factory (RowFactoryType | None, optional): By default ORMBase will use <table_spec>.table_row_factory
                 as row factory, set this argument to use different row factory. Defaults to None.
@@ -378,7 +379,7 @@ class ORMBase(Generic[TableSpecType]):
     def orm_delete_entries(
         self,
         *,
-        _order_by: tuple[str | tuple[str, ORDER_DIRECTION]] | None = None,
+        _order_by: ColsDefWithDirection | None = None,
         _limit: int | None = None,
         _row_factory: RowFactoryType | None = None,
         **cols_value: Any,
@@ -386,7 +387,7 @@ class ORMBase(Generic[TableSpecType]):
         """Delete entries from the table accordingly.
 
         Args:
-            _order_by (tuple[str  |  tuple[str, ORDER_DIRECTION]] | None, optional): Order the matching entries
+            _order_by (ColsDefWithDirection | None, optional): Order the matching entries
                 before executing the deletion, used together with <_limit>. Defaults to None.
             _limit (int | None, optional): Only delete <_limit> number of entries. Defaults to None.
             _row_factory (RowFactoryType | None, optional): By default ORMBase will use <table_spec>.table_row_factory
@@ -412,9 +413,9 @@ class ORMBase(Generic[TableSpecType]):
     def orm_delete_entries_with_returning(
         self,
         *,
-        _order_by: tuple[str | tuple[str, ORDER_DIRECTION]] | None = None,
+        _order_by: ColsDefWithDirection | None = None,
         _limit: int | None = None,
-        _returning_cols: tuple[str, ...] | Literal["*"],
+        _returning_cols: ColsDefinition | Literal["*"],
         _row_factory: RowFactoryType | None = None,
         **cols_value: Any,
     ) -> Generator[TableSpecType]:
@@ -423,10 +424,10 @@ class ORMBase(Generic[TableSpecType]):
         NOTE that only sqlite3 version >= 3.35 supports returning statement.
 
         Args:
-            _order_by (tuple[str  |  tuple[str, ORDER_DIRECTION]] | None, optional): Order the matching entries
+            _order_by (ColsDefWithDirection | None, optional): Order the matching entries
                 before executing the deletion, used together with <_limit>. Defaults to None.
             _limit (int | None, optional): Only delete <_limit> number of entries. Defaults to None.
-            _returning_cols (tuple[str, ...] | Literal["*"] ): Return the deleted entries on execution.
+            _returning_cols (ColsDefinition | Literal["*"] ): Return the deleted entries on execution.
             _row_factory (RowFactoryType | None, optional): By default ORMBase will use <table_spec>.table_row_factory
                 as row factory, set this argument to use different row factory. Defaults to None.
 
