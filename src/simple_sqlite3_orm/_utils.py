@@ -214,13 +214,13 @@ def gen_sql_stmt(*components: str) -> str:
         return buffer.getvalue().strip()
 
 
-ColsDefinition: TypeAlias = "tuple[str, ...] | Mapping[str, EllipsisType]"
+ColsDefinition: TypeAlias = "tuple[str, ...] | Mapping[str, Any]"
 """Define how we can provide cols."""
 
 ColsValuesDict = Mapping[str, Any]
 """Define how we can provide col,value pairs."""
 
-ColsDefWithDirection: TypeAlias = "Mapping[str, ORDER_DIRECTION | EllipsisType] | tuple[tuple[str, ORDER_DIRECTION] | str, ...]"
+ColsDefWithDirection: TypeAlias = "Mapping[str, ORDER_DIRECTION | Any] | tuple[tuple[str, ORDER_DIRECTION] | str, ...]"
 """Define how we can provide order_by information."""
 
 
